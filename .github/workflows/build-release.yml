@@ -67,8 +67,6 @@ jobs:
         run: |
           mkdir -p ../src-tauri/binaries
           npx esbuild src/server.ts --bundle --platform=node \
-            --external:mongodb-memory-server --external:mongoose \
-            --external:mongodb --external:bson --external:snappy \
             --outfile=dist/bundle.js
           echo '{"main": "dist/bundle.js", "output": "dist/sea-prep.blob"}' > sea-config.json
           node --experimental-sea-config sea-config.json
