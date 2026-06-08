@@ -161,7 +161,7 @@ fn main() {
                 let state = app_handle.state::<BackendState>();
                 if let Some(child) = state.0.lock().unwrap().take() {
                     let _ = child.kill();
-                }
+                };
             }
         });
 }
