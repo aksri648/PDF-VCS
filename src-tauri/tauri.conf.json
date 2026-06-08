@@ -4,8 +4,14 @@
   "version": "0.1.0",
   "identifier": "com.pdfvcs.app",
   "build": {
-    "beforeDevCommand": "cd ../frontend && npm run dev",
-    "beforeBuildCommand": "cd ../frontend && npm run build",
+    "beforeDevCommand": {
+      "cwd": "../frontend",
+      "script": "npm run dev"
+    },
+    "beforeBuildCommand": {
+      "cwd": "../frontend",
+      "script": "npm run build"
+    },
     "devUrl": "http://localhost:5173",
     "frontendDist": "../frontend/dist"
   },
