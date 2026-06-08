@@ -46,22 +46,22 @@ jobs:
             patchelf libssl-dev
 
       - name: Install frontend dependencies
-        working-directory: pdf-vcs/frontend
+        working-directory: frontend
         run: npm ci || npm install
 
       - name: Install backend dependencies
-        working-directory: pdf-vcs/backend
+        working-directory: backend
         run: npm ci || npm install
 
       - name: Build backend
-        working-directory: pdf-vcs/backend
+        working-directory: backend
         run: npm run build
 
       - name: Install pkg
         run: npm install -g pkg
 
       - name: Bundle backend as sidecar binary
-        working-directory: pdf-vcs/backend
+        working-directory: backend
         shell: bash
         run: |
           mkdir -p ../src-tauri/binaries
@@ -70,7 +70,7 @@ jobs:
             --output ../src-tauri/binaries/${{ matrix.sidecar-name }}
 
       - name: Build frontend
-        working-directory: pdf-vcs/frontend
+        working-directory: frontend
         run: npm run build
 
       - name: Build Tauri app
@@ -78,7 +78,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          projectPath: pdf-vcs
+          projectPath: .
           tagName: ${{ github.ref_name }}
           releaseName: 'PDF VCS ${{ github.ref_name }}'
           releaseBody: 'Native desktop build for ${{ matrix.os }}'
