@@ -1,6 +1,7 @@
 import type { DocumentMeta, VersionMeta } from './types';
+import { apiBase } from './tauri';
 
-const API_BASE = '/api';
+const API_BASE = `${apiBase()}/api`;
 
 async function jsonOrThrow<T>(res: Response): Promise<T> {
   if (!res.ok) {

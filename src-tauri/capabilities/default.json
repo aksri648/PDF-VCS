@@ -9,6 +9,10 @@
     {
       "identifier": "shell:allow-spawn",
       "allow": [{ "name": "binaries/pdf-vcs-backend", "sidecar": true }]
+    },
+    {
+      "identifier": "shell:allow-open",
+      "allow": [{ "url": "https://www.mongodb.com/cloud/atlas/register" }]
     }
   ]
 }

@@ -9,7 +9,24 @@ import versionRoutes from './routes/version.routes';
 import { attachSocketHandlers } from './socket/socketHandler';
 
 const PORT = Number(process.env.PORT) || 3001;
-const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
+const ALLOWED_ORIGINS = [
+  process.env.FRONTEND_URL || 'http://localhost:5173',
+  'tauri://localhost',
+  'http://tauri.localhost',
+];
+
+function maskUri(uri: string): string {
+  try {
+    const u = new URL(uri);
+    if (u.username || u.password) {
+      u.username = '****';
+      u.password = '';
+    }
+    return u.toString();
+  } catch {
+    return uri.replace(/\/\/[^@]+@/, '//****@');
+  }
+}
 
 async function connectMongo(): Promise<string> {
   if (process.env.MONGODB_URI) {
@@ -17,19 +34,25 @@ async function connectMongo(): Promise<string> {
     return process.env.MONGODB_URI;
   }
 
-  const { MongoMemoryServer } = await import('mongodb-memory-server');
-  const mem = await MongoMemoryServer.create();
-  const uri = mem.getUri();
-  await mongoose.connect(uri);
-  return uri;
+  if (process.env.USE_MEMORY === '1') {
+    const { MongoMemoryServer } = await import('mongodb-memory-server');
+    const mem = await MongoMemoryServer.create();
+    const uri = mem.getUri();
+    await mongoose.connect(uri);
+    return uri;
+  }
+
+  console.error('[pdf-vcs] MONGODB_URI is not set. Provide a connection string or set USE_MEMORY=1 for dev.');
+  process.exit(2);
 }
 
 async function main() {
   const uri = await connectMongo();
-  console.log(`[pdf-vcs] MongoDB connected: ${uri}`);
+  console.log(`[pdf-vcs] using ${maskUri(uri)}`);
+  console.log('[pdf-vcs] MongoDB connected');
 
   const app = express();
-  app.use(cors({ origin: FRONTEND_URL, credentials: true }));
+  app.use(cors({ origin: ALLOWED_ORIGINS, credentials: true }));
   app.use(express.json({ limit: '10mb' }));
 
   app.get('/health', (_req, res) => res.json({ ok: true }));
@@ -38,7 +61,7 @@ async function main() {
 
   const server = http.createServer(app);
   const io = new SocketIOServer(server, {
-    cors: { origin: FRONTEND_URL, credentials: true },
+    cors: { origin: ALLOWED_ORIGINS, credentials: true },
     maxHttpBufferSize: 100 * 1024 * 1024,
   });
 
@@ -58,6 +81,6 @@ async function main() {
 }
 
 main().catch((err) => {
-  console.error('[pdf-vcs] fatal:', err);
+  console.error('[pdf-vcs] fatal:', err?.message ?? err);
   process.exit(1);
 });

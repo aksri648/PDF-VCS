@@ -2,12 +2,14 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { api } from '../api';
 import { FileUploader } from '../components/FileUploader';
+import { MongoSettingsModal } from '../components/MongoSettingsModal';
 import type { DocumentMeta } from '../types';
 import { formatDistanceToNow } from 'date-fns';
 
 export function Dashboard() {
   const [docs, setDocs] = useState<DocumentMeta[]>([]);
   const [showUploader, setShowUploader] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
   const navigate = useNavigate();
 
   const refresh = async () => setDocs(await api.listDocuments());
@@ -26,12 +28,20 @@ export function Dashboard() {
     <div className="max-w-6xl mx-auto p-6">
       <header className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-semibold">PDF Version Control</h1>
-        <button
-          onClick={() => setShowUploader((v) => !v)}
-          className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-        >
-          {showUploader ? 'Cancel' : 'Upload New PDF'}
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowSettings(true)}
+            className="px-4 py-2 bg-slate-100 text-slate-700 rounded hover:bg-slate-200"
+          >
+            Settings
+          </button>
+          <button
+            onClick={() => setShowUploader((v) => !v)}
+            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+          >
+            {showUploader ? 'Cancel' : 'Upload New PDF'}
+          </button>
+        </div>
       </header>
 
       {showUploader && (
@@ -88,6 +98,13 @@ export function Dashboard() {
             </li>
           ))}
         </ul>
+      )}
+
+      {showSettings && (
+        <MongoSettingsModal
+          onClose={() => setShowSettings(false)}
+          onSaved={() => void refresh()}
+        />
       )}
     </div>
   );

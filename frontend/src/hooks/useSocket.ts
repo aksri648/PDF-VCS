@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { io, Socket } from 'socket.io-client';
 import type { VersionMeta } from '../types';
+import { apiBase } from '../tauri';
 
 export interface SocketHandlers {
   onVersionSaved?: (v: VersionMeta) => void;
@@ -15,7 +16,10 @@ export function useSocket(documentId: string | null, handlers: SocketHandlers) {
   useEffect(() => {
     if (!documentId) return;
 
-    const socket = io({ transports: ['websocket', 'polling'] });
+    const base = apiBase();
+    const socket = base
+      ? io(base, { transports: ['websocket', 'polling'] })
+      : io({ transports: ['websocket', 'polling'] });
     socketRef.current = socket;
 
     socket.on('connect', () => {
