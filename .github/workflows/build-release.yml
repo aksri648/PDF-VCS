@@ -14,11 +14,9 @@ jobs:
         include:
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
-            pkg-target: node20-linux-x64
             sidecar-name: pdf-vcs-backend-x86_64-unknown-linux-gnu
           - os: windows-latest
             target: x86_64-pc-windows-msvc
-            pkg-target: node20-win-x64
             sidecar-name: pdf-vcs-backend-x86_64-pc-windows-msvc.exe
 
     runs-on: ${{ matrix.os }}
@@ -57,17 +55,20 @@ jobs:
         working-directory: backend
         run: npm run build
 
-      - name: Install pkg
-        run: npm install -g pkg
-
       - name: Bundle backend as sidecar binary
         working-directory: backend
         shell: bash
         run: |
           mkdir -p ../src-tauri/binaries
-          pkg dist/server.js \
-            --targets ${{ matrix.pkg-target }} \
-            --output ../src-tauri/binaries/${{ matrix.sidecar-name }}
+          npx esbuild src/server.ts --bundle --platform=node \
+            --external:mongodb-memory-server --external:mongoose \
+            --outfile=dist/bundle.js
+          echo '{"main": "dist/bundle.js", "output": "dist/sea-prep.blob"}' > sea-config.json
+          node --experimental-sea-config sea-config.json
+          cp $(node -e "process.stdout.write(process.execPath)") ../src-tauri/binaries/${{ matrix.sidecar-name }}
+          npx postject ../src-tauri/binaries/${{ matrix.sidecar-name }} NODE_SEA_BLOB \
+            dist/sea-prep.blob --sentinel-fuse NODE_SEA_FUSE_fce680ab2cc467b6e072b8b5df1996b2
+          rm -f sea-config.json dist/sea-prep.blob
 
       - name: Build frontend
         working-directory: frontend
