@@ -1,0 +1,87 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            pkg-target: node20-linux-x64
+            sidecar-name: pdf-vcs-backend-x86_64-unknown-linux-gnu
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            pkg-target: node20-win-x64
+            sidecar-name: pdf-vcs-backend-x86_64-pc-windows-msvc.exe
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Install Linux dependencies
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev \
+            libayatana-appindicator3-dev librsvg2-dev \
+            patchelf libssl-dev
+
+      - name: Install frontend dependencies
+        working-directory: pdf-vcs/frontend
+        run: npm ci || npm install
+
+      - name: Install backend dependencies
+        working-directory: pdf-vcs/backend
+        run: npm ci || npm install
+
+      - name: Build backend
+        working-directory: pdf-vcs/backend
+        run: npm run build
+
+      - name: Install pkg
+        run: npm install -g pkg
+
+      - name: Bundle backend as sidecar binary
+        working-directory: pdf-vcs/backend
+        shell: bash
+        run: |
+          mkdir -p ../src-tauri/binaries
+          pkg dist/server.js \
+            --targets ${{ matrix.pkg-target }} \
+            --output ../src-tauri/binaries/${{ matrix.sidecar-name }}
+
+      - name: Build frontend
+        working-directory: pdf-vcs/frontend
+        run: npm run build
+
+      - name: Build Tauri app
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          projectPath: pdf-vcs
+          tagName: ${{ github.ref_name }}
+          releaseName: 'PDF VCS ${{ github.ref_name }}'
+          releaseBody: 'Native desktop build for ${{ matrix.os }}'
+          releaseDraft: false
+          prerelease: false
+          args: --target ${{ matrix.target }}
